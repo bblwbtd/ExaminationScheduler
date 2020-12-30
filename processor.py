@@ -121,6 +121,7 @@ def save_to_sheet(campus: Campus, sheet: Worksheet):
     add_first_row(sheet)
     adjust_column_style(sheet)
 
+    place_pointer = 2
     start_pointer = 2
     end_pointer = 2
 
@@ -131,16 +132,28 @@ def save_to_sheet(campus: Campus, sheet: Worksheet):
         date_obj = campus.dates[date]
         for session, session_obj in date_obj.sessions.items():
             for course, course_obj in session_obj.courses.items():
-                for place, place_obj in course_obj.places.items():
+                places = list(course_obj.places.keys())
+                places.sort()
+                place_temp_name = places[0]
+                for place in places:
+                    place_obj = course_obj.places[place]
                     for clazz_obj in place_obj.clazzes.values():
                         insert_row(sheet, end_pointer, date, session, course, course_obj.college, place, clazz_obj.name,
                                    clazz_obj.student_amount, clazz_obj.student_college)
                         end_pointer += 1
+
+                    if place != place_temp_name:
+                        sheet.merge_cells(start_row=place_pointer, end_row=end_pointer - 1, start_column=5,
+                                          end_column=5)
+                        place_pointer = end_pointer
+
                 sheet.merge_cells(start_row=start_pointer, end_row=end_pointer - 1, start_column=4, end_column=4)
                 sheet.merge_cells(start_row=start_pointer, end_row=end_pointer - 1, start_column=3, end_column=3)
                 sheet.merge_cells(start_row=start_pointer, end_row=end_pointer - 1, start_column=2, end_column=2)
-
+                if place_pointer != end_pointer:
+                    sheet.merge_cells(start_row=place_pointer, end_row=end_pointer - 1, start_column=5, end_column=5)
                 start_pointer = end_pointer
+                place_pointer = end_pointer
 
 
 def save_file(data: Dict[str, Campus], output_filepath: str):
@@ -154,5 +167,5 @@ def save_file(data: Dict[str, Campus], output_filepath: str):
     wb.save(output_filepath)
 
 #
-data = process_file('./Copy of 期末考试周应考学生信息 full.xlsx')
-save_file(data, "./test_full.xlsx")
+# data = process_file('./Copy of 期末考试周应考学生信息 full.xlsx')
+# save_file(data, "./test_full.xlsx")
