@@ -121,39 +121,50 @@ def save_to_sheet(campus: Campus, sheet: Worksheet):
     add_first_row(sheet)
     adjust_column_style(sheet)
 
-    place_pointer = 2
     start_pointer = 2
     end_pointer = 2
 
     dates = list(campus.dates.keys())
     dates.sort()
-
     for date in dates:
         date_obj = campus.dates[date]
         for session, session_obj in date_obj.sessions.items():
             for course, course_obj in session_obj.courses.items():
                 places = list(course_obj.places.keys())
                 places.sort()
-                place_temp_name = places[0]
+
+                place_pointer = start_pointer
+                student_college_pointer = start_pointer
+
+                temp_student_college = None
+
                 for place in places:
                     place_obj = course_obj.places[place]
                     for clazz_obj in place_obj.clazzes.values():
                         insert_row(sheet, end_pointer, date, session, course, course_obj.college, place, clazz_obj.name,
                                    clazz_obj.student_amount, clazz_obj.student_college)
+                        if temp_student_college is None:
+                            temp_student_college = clazz_obj.student_college
+                        elif temp_student_college != clazz_obj.student_college:
+                            sheet.merge_cells(start_column=8, end_column=8, start_row=student_college_pointer,
+                                              end_row=end_pointer - 1)
+                            temp_student_college = clazz_obj.student_college
+                            student_college_pointer = end_pointer
+
                         end_pointer += 1
 
-                    if place != place_temp_name:
+                    if place_pointer != end_pointer - 1:
                         sheet.merge_cells(start_row=place_pointer, end_row=end_pointer - 1, start_column=5,
                                           end_column=5)
-                        place_pointer = end_pointer
+                    place_pointer = end_pointer
 
                 sheet.merge_cells(start_row=start_pointer, end_row=end_pointer - 1, start_column=4, end_column=4)
                 sheet.merge_cells(start_row=start_pointer, end_row=end_pointer - 1, start_column=3, end_column=3)
                 sheet.merge_cells(start_row=start_pointer, end_row=end_pointer - 1, start_column=2, end_column=2)
-                if place_pointer != end_pointer:
-                    sheet.merge_cells(start_row=place_pointer, end_row=end_pointer - 1, start_column=5, end_column=5)
+                if student_college_pointer < end_pointer - 1:
+                    sheet.merge_cells(start_row=student_college_pointer, end_row=end_pointer - 1, start_column=8, end_column=8)
+
                 start_pointer = end_pointer
-                place_pointer = end_pointer
 
 
 def save_file(data: Dict[str, Campus], output_filepath: str):
@@ -167,5 +178,5 @@ def save_file(data: Dict[str, Campus], output_filepath: str):
     wb.save(output_filepath)
 
 #
-# data = process_file('./Copy of 期末考试周应考学生信息 full.xlsx')
-# save_file(data, "./test_full.xlsx")
+data = process_file('./Copy of 期末考试周应考学生信息 full.xlsx')
+save_file(data, "./test_full.xlsx")
