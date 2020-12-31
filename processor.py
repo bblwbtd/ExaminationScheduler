@@ -65,15 +65,18 @@ class RowInfo:
         self.period = f'{start_time}-{end_time}'
         self.campus = row[13]
         self.place = row[15]
-        self.loser = row[18] != '正常'
+        self.status = row[18]
 
     def cook_info(self, output):
+        if self.status == '':
+            return
+
         campus = output.setdefault(self.campus, Campus(self.campus))
         date = campus.dates.setdefault(self.date, ExamDate(self.date))
         session = date.sessions.setdefault(self.period, Session(self.period))
         course = session.courses.setdefault(self.course, Course(self.course, self.course_college))
         place = course.places.setdefault(self.place, Place(self.place))
-        if self.loser:
+        if self.status == '重修':
             clazz = place.clazzes.setdefault('重修', Clazz('重修'))
         else:
             clazz = place.clazzes.setdefault(self.clazz, Clazz(self.clazz))
