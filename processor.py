@@ -75,20 +75,16 @@ def process_file(input_filepath: str):
     wb = load_workbook(input_filepath)
     sheet: Worksheet = wb[wb.sheetnames[0]]
     cooked_data = {}
-    temp_course_name = ''
-
-    for index, row in enumerate(sheet.values):
-        if index == 0:
-            continue
-        try:
-            row_info = RowInfo(row)
-        except Exception:
-            print(f"Can't parse row {index + 1}")
-            continue
-        if row_info.course is not None or '':
-            temp_course_name = row_info.course
-        else:
-            row_info.course = temp_course_name
+    for name in wb.sheetnames:
+        sheet: Worksheet = wb[name]
+        for index, row in enumerate(sheet.values):
+            if index == 0:
+                continue
+            try:
+                row_info = RowInfo(row)
+            except Exception:
+                print(f"Can't parse row {index + 1}")
+                continue
             row_info.cook_info(cooked_data)
 
     return cooked_data
@@ -172,8 +168,14 @@ def save_file(data: Dict[str, Campus], output_filepath: str):
     wb.create_sheet("南湖校区", 0)
     wb.create_sheet("浑南校区", 1)
 
-    save_to_sheet(data["南湖校区"], wb.worksheets[0])
-    save_to_sheet(data["浑南校区"], wb.worksheets[1])
+    if data.get("南湖校区"):
+        save_to_sheet(data.get("南湖校区"), wb.worksheets[0])
+
+    if data.get("浑南校区"):
+        save_to_sheet(data.get("浑南校区"), wb.worksheets[1])
 
     wb.save(output_filepath)
 
+#
+data = process_file('./Copy of 应考学生信息.xlsx')
+save_file(data, "./test_new.xlsx")
