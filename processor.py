@@ -176,6 +176,4 @@ def save_file(data: Dict[str, Campus], output_filepath: str):
 
     wb.save(output_filepath)
 
-#
-data = process_file('./Copy of 应考学生信息.xlsx')
-save_file(data, "./test_new.xlsx")
+
