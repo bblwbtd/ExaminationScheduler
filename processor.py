@@ -73,7 +73,6 @@ class RowInfo:
 
 def process_file(input_filepath: str):
     wb = load_workbook(input_filepath)
-    sheet: Worksheet = wb[wb.sheetnames[0]]
     cooked_data = {}
     for name in wb.sheetnames:
         sheet: Worksheet = wb[name]
@@ -124,7 +123,12 @@ def save_to_sheet(campus: Campus, sheet: Worksheet):
     dates.sort()
     for date in dates:
         date_obj = campus.dates[date]
-        for session, session_obj in date_obj.sessions.items():
+
+        sessions = list(date_obj.sessions.keys())
+        sessions.sort()
+        for session in sessions:
+            session_obj = date_obj.sessions[session]
+
             for course, course_obj in session_obj.courses.items():
                 places = list(course_obj.places.keys())
                 places.sort()
