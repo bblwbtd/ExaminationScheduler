@@ -54,18 +54,31 @@ def parse_date_and_time(date_and_time: str):
     return tuple(date_and_time.split(" "))
 
 
+name_index_map = {
+    "院系": 3,
+    "行政班": 5,
+    "课程名称": 8,
+    "开课院系": 10,
+    "考试开始时间": 11,
+    "考试结束时间": 12,
+    "校区": 13,
+    "考试地点": 15,
+    "修读类别": 18
+}
+
+
 class RowInfo:
     def __init__(self, row: Tuple):
-        self.student_college = row[3]
-        self.clazz = row[5]
-        self.course = row[8]
-        self.course_college = row[10]
-        self.date, start_time = parse_date_and_time(row[11])
-        _, end_time = parse_date_and_time(row[12])
+        self.student_college = row[name_index_map["院系"]]
+        self.clazz = row[name_index_map["行政班"]]
+        self.course = row[name_index_map["课程名称"]]
+        self.course_college = row[name_index_map["开课院系"]]
+        self.date, start_time = parse_date_and_time(row[name_index_map["考试开始时间"]])
+        _, end_time = parse_date_and_time(row[name_index_map["考试结束时间"]])
         self.period = f'{start_time}-{end_time}'
-        self.campus = row[13]
-        self.place = row[15]
-        self.status = row[18]
+        self.campus = row[name_index_map["校区"]]
+        self.place = row[name_index_map["考试地点"]]
+        self.status = row[name_index_map["修读类别"]]
 
     def cook_info(self, output):
         if self.status == '':
@@ -85,11 +98,17 @@ class RowInfo:
         student_college.add_student()
 
 
+def extract_header_index(sheet: Worksheet):
+    for cell in sheet[sheet.min_column:sheet.max_column][0]:
+        name_index_map[cell.value] = cell.column - 1
+
+
 def process_file(input_filepath: str):
     wb = load_workbook(input_filepath)
     cooked_data = {}
     for name in wb.sheetnames:
         sheet: Worksheet = wb[name]
+        extract_header_index(sheet)
         for index, row in enumerate(sheet.values):
             if index == 0:
                 continue
