@@ -66,13 +66,35 @@ name_index_map = {
     "修读类别": 18
 }
 
+short_name_map = {
+    "文法学院": "文法",
+    "马克思主义学院": "马克思",
+    "外国语学院": "外语",
+    "艺术学院": "艺术",
+    "工商管理学院": "管理",
+    "理学院": "理学",
+    "资源与土木工程学院": "资土",
+    "冶金学院": "冶金",
+    "材料科学与工程学院": "材料",
+    "机械工程与自动化学院": "机械",
+    "信息科学与工程学院": "信息",
+    "计算机科学与工程学院": "计算机",
+    "软件学院": "软件",
+    "医学与生物信息工程学院": "医工",
+    "生命科学与健康学院": "生命",
+    "江河建筑学院": "建筑",
+    "机器人科学与工程学院": "机器人",
+    "体育部": "体育"
+}
+
 
 class RowInfo:
     def __init__(self, row: Tuple):
-        self.student_college = row[name_index_map["院系"]]
+
+        self.student_college = short_name_map.get(row[name_index_map["院系"]], row[name_index_map["院系"]])
         self.clazz = row[name_index_map["行政班"]]
         self.course = row[name_index_map["课程名称"]]
-        self.course_college = row[name_index_map["开课院系"]]
+        self.course_college = short_name_map.get(row[name_index_map["开课院系"]], row[name_index_map["开课院系"]])
         self.date, start_time = parse_date_and_time(row[name_index_map["考试开始时间"]])
         _, end_time = parse_date_and_time(row[name_index_map["考试结束时间"]])
         self.period = f'{start_time}-{end_time}'
@@ -215,4 +237,3 @@ def save_file(data: Dict[str, Campus], output_filepath: str):
         save_to_sheet(data.get("浑南校区"), wb.worksheets[1])
 
     wb.save(output_filepath)
-
