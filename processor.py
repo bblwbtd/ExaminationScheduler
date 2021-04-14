@@ -251,7 +251,3 @@ def save_file(data: Dict[str, Campus], output_filepath: str):
         save_to_sheet(data.get("浑南校区"), wb.worksheets[1])
 
     wb.save(output_filepath)
-
-
-cooked_data = process_file("Copy of 应考学生信息 (19).xlsx")
-save_file(cooked_data, "test.xlsx")
