@@ -196,19 +196,33 @@ def save_to_sheet(campus: Campus, sheet: Worksheet):
                 for place in places:
                     place_obj = course_obj.places[place]
                     for clazz_obj in place_obj.clazzes.values():
-                        for student_college_obj in clazz_obj.student_colleges.values():
+                        if clazz_obj.name == "重修":
+                            total_amount = 0
+                            finial_college_name = []
+                            for student_college_obj in clazz_obj.student_colleges.values():
+                                finial_college_name.append(student_college_obj.name)
+                                total_amount += student_college_obj.student_amount
+                            temp_student_college = '+'.join(finial_college_name) + '学院'
                             insert_row(sheet, end_pointer, date, session, course, course_obj.college, place,
                                        clazz_obj.name,
-                                       student_college_obj.student_amount, student_college_obj.name)
-                            if temp_student_college is None:
-                                temp_student_college = student_college_obj.name
-                            elif temp_student_college != clazz_obj.student_colleges:
-                                sheet.merge_cells(start_column=8, end_column=8, start_row=student_college_pointer,
-                                                  end_row=end_pointer - 1)
-                                temp_student_college = student_college_obj.name
-                                student_college_pointer = end_pointer
-
+                                       total_amount, temp_student_college)
+                            student_college_pointer = end_pointer
                             end_pointer += 1
+                        else:
+
+                            for student_college_obj in clazz_obj.student_colleges.values():
+                                insert_row(sheet, end_pointer, date, session, course, course_obj.college, place,
+                                           clazz_obj.name,
+                                           student_college_obj.student_amount, student_college_obj.name)
+                                if temp_student_college is None:
+                                    temp_student_college = student_college_obj.name
+                                elif temp_student_college != clazz_obj.student_colleges:
+                                    sheet.merge_cells(start_column=8, end_column=8, start_row=student_college_pointer,
+                                                      end_row=end_pointer - 1)
+                                    temp_student_college = student_college_obj.name
+                                    student_college_pointer = end_pointer
+
+                                end_pointer += 1
 
                     if place_pointer != end_pointer - 1:
                         sheet.merge_cells(start_row=place_pointer, end_row=end_pointer - 1, start_column=5,
@@ -237,3 +251,7 @@ def save_file(data: Dict[str, Campus], output_filepath: str):
         save_to_sheet(data.get("浑南校区"), wb.worksheets[1])
 
     wb.save(output_filepath)
+
+
+cooked_data = process_file("Copy of 应考学生信息 (19).xlsx")
+save_file(cooked_data, "test.xlsx")
