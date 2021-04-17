@@ -1,6 +1,8 @@
-from typing import Dict, Tuple
+import re
+from typing import Dict, Tuple, List
 
 from openpyxl import load_workbook, Workbook
+from openpyxl.styles import Alignment
 from openpyxl.worksheet.worksheet import Worksheet
 
 
@@ -18,11 +20,41 @@ class Clazz:
         self.name = name
         self.student_colleges: Dict[str, StudentCollege] = {}
 
+    def __gt__(self, other):
+        return (self.name == '重修') or (self.name > other.name)
+
+    def __eq__(self, other):
+        return self.name == other.name
+
 
 class Place:
     def __init__(self, name=''):
         self.name = name
         self.clazzes: Dict[str, Clazz] = {}
+
+    def __lt__(self, other):
+
+        def extract_column(name: str):
+            left = name.find("(")
+            right = name.find(")")
+
+            if left != -1 and right != -1:
+                return [int(i) for i in re.findall(r'\d+', name[left: right])]
+            return []
+
+        array1 = extract_column(self.name)
+        array2 = extract_column(other.name)
+
+        temp1 = self.name[:self.name.find("(")]
+        temp2 = other.name[:other.name.find("(")]
+
+        if (len(array1) > 1 and len(array2) > 1) and temp1 == temp2:
+            return max(array1) < max(array2)
+
+        return self.name < other.name
+
+    def __eq__(self, other):
+        return self.name == other.name
 
 
 class Course:
@@ -144,35 +176,50 @@ def process_file(input_filepath: str):
     return cooked_data
 
 
-def add_first_row(sheet: Worksheet):
-    headers = ('考试日期', '考试时间', '考试名称', '开课院系', '考试地点', '班级', '考生人数', '考生院系')
+def add_headers_and_title(sheet: Worksheet):
+    headers = ('序号', '考试日期', '考试时间', '考试名称', '开课院系', '考试地点', '班级', '考生人数', '考生院系')
     for index, header in enumerate(headers):
-        sheet.cell(1, index + 1, header)
+        sheet.cell(2, index + 1, header)
+
+    title = '东北大学考试日程表'
+    sheet.merge_cells(start_row=1, end_row=1, start_column=1, end_column=9)
+    cell = sheet['A1']
+    cell.value = title
+    cell.alignment = Alignment(horizontal="center", vertical="center")
 
 
 def insert_row(sheet: Worksheet, row: int, date, period, course, course_college, place, clazz, student_amount,
                student_college):
-    temp = (date, period, course, course_college, place, clazz, student_amount, student_college)
+    temp = (row - 2, date, period, course, course_college, place, clazz, student_amount, student_college)
     for index, item in enumerate(temp):
         sheet.cell(row, index + 1, item)
 
 
+column_width = {
+    'A': 10,
+    'B': 15,
+    'C': 15,
+    'D': 30,
+    'E': 15,
+    'F': 30,
+    'G': 30,
+    'H': 10,
+    'I': 30
+}
+
+
 def adjust_column_style(sheet: Worksheet):
-    sheet.column_dimensions['A'].width = 15
-    sheet.column_dimensions['B'].width = 15
-    sheet.column_dimensions['C'].width = 30
-    sheet.column_dimensions['D'].width = 30
-    sheet.column_dimensions['E'].width = 30
-    sheet.column_dimensions['F'].width = 15
-    sheet.column_dimensions['H'].width = 30
+    for key in column_width.keys():
+        width = column_width[key]
+        sheet.column_dimensions[key].width = width
 
 
 def save_to_sheet(campus: Campus, sheet: Worksheet):
-    add_first_row(sheet)
+    add_headers_and_title(sheet)
     adjust_column_style(sheet)
 
-    start_pointer = 2
-    end_pointer = 2
+    start_pointer = 3
+    end_pointer = 3
 
     dates = list(campus.dates.keys())
     dates.sort()
@@ -185,7 +232,7 @@ def save_to_sheet(campus: Campus, sheet: Worksheet):
             session_obj = date_obj.sessions[session]
 
             for course, course_obj in session_obj.courses.items():
-                places = list(course_obj.places.keys())
+                places = list(course_obj.places.values())
                 places.sort()
 
                 place_pointer = start_pointer
@@ -194,8 +241,10 @@ def save_to_sheet(campus: Campus, sheet: Worksheet):
                 temp_student_college = None
 
                 for place in places:
-                    place_obj = course_obj.places[place]
-                    for clazz_obj in place_obj.clazzes.values():
+                    place_obj = course_obj.places[place.name]
+                    array = list(place_obj.clazzes.values())
+                    array.sort()
+                    for clazz_obj in array:
                         if clazz_obj.name == "重修":
                             total_amount = 0
                             finial_college_name = []
@@ -203,21 +252,20 @@ def save_to_sheet(campus: Campus, sheet: Worksheet):
                                 finial_college_name.append(student_college_obj.name)
                                 total_amount += student_college_obj.student_amount
                             temp_student_college = '+'.join(finial_college_name) + '学院'
-                            insert_row(sheet, end_pointer, date, session, course, course_obj.college, place,
+                            insert_row(sheet, end_pointer, date, session, course, course_obj.college, place.name,
                                        clazz_obj.name,
                                        total_amount, temp_student_college)
                             student_college_pointer = end_pointer
                             end_pointer += 1
                         else:
-
                             for student_college_obj in clazz_obj.student_colleges.values():
-                                insert_row(sheet, end_pointer, date, session, course, course_obj.college, place,
+                                insert_row(sheet, end_pointer, date, session, course, course_obj.college, place.name,
                                            clazz_obj.name,
                                            student_college_obj.student_amount, student_college_obj.name)
                                 if temp_student_college is None:
                                     temp_student_college = student_college_obj.name
                                 elif temp_student_college != clazz_obj.student_colleges:
-                                    sheet.merge_cells(start_column=8, end_column=8, start_row=student_college_pointer,
+                                    sheet.merge_cells(start_column=9, end_column=9, start_row=student_college_pointer,
                                                       end_row=end_pointer - 1)
                                     temp_student_college = student_college_obj.name
                                     student_college_pointer = end_pointer
@@ -225,16 +273,16 @@ def save_to_sheet(campus: Campus, sheet: Worksheet):
                                 end_pointer += 1
 
                     if place_pointer != end_pointer - 1:
-                        sheet.merge_cells(start_row=place_pointer, end_row=end_pointer - 1, start_column=5,
-                                          end_column=5)
+                        sheet.merge_cells(start_row=place_pointer, end_row=end_pointer - 1, start_column=6,
+                                          end_column=6)
                     place_pointer = end_pointer
 
+                sheet.merge_cells(start_row=start_pointer, end_row=end_pointer - 1, start_column=5, end_column=5)
                 sheet.merge_cells(start_row=start_pointer, end_row=end_pointer - 1, start_column=4, end_column=4)
                 sheet.merge_cells(start_row=start_pointer, end_row=end_pointer - 1, start_column=3, end_column=3)
-                sheet.merge_cells(start_row=start_pointer, end_row=end_pointer - 1, start_column=2, end_column=2)
                 if student_college_pointer < end_pointer - 1:
-                    sheet.merge_cells(start_row=student_college_pointer, end_row=end_pointer - 1, start_column=8,
-                                      end_column=8)
+                    sheet.merge_cells(start_row=student_college_pointer, end_row=end_pointer - 1, start_column=9,
+                                      end_column=9)
 
                 start_pointer = end_pointer
 
