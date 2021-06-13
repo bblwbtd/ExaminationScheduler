@@ -144,7 +144,7 @@ class RowInfo:
         session = date.sessions.setdefault(self.period, Session(self.period))
         course = session.courses.setdefault(self.course, Course(self.course, self.course_college))
         place = course.places.setdefault(self.place, Place(self.place))
-        if self.status == '重修':
+        if str.strip(self.status) == '重修':
             clazz = place.clazzes.setdefault('重修', Clazz('重修'))
         else:
             clazz = place.clazzes.setdefault(self.clazz, Clazz(self.clazz))
@@ -169,8 +169,8 @@ def process_file(input_filepath: str):
                 continue
             try:
                 row_info = RowInfo(row)
-            except Exception:
-                print(f"Can't parse row {index + 1}")
+            except Exception as e:
+                print(f"Can't parse row {index + 1} {str(e)}")
                 continue
             row_info.cook_info(cooked_data)
 
